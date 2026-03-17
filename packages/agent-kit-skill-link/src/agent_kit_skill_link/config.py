@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import tomllib
 
-import tomli_w
-
-CONFIG_SECTION = "skill_link"
+from agent_kit_skill_link import CONFIG_VERSION, PLUGIN_ID
+from agent_kit_skill_link.jsonc import load_jsonc, write_jsonc
 
 
 @dataclass(slots=True, frozen=True)
@@ -15,22 +13,21 @@ class SkillLinkConfig:
     target_dir: Path
 
 
-def config_file_path(config_dir: Path) -> Path:
-    return config_dir / "config.toml"
+def config_file_path(config_root: Path) -> Path:
+    return config_root / "plugins" / PLUGIN_ID / "config.jsonc"
 
 
-def load_config(config_dir: Path) -> SkillLinkConfig | None:
-    path = config_file_path(config_dir)
+def load_config(config_root: Path) -> SkillLinkConfig | None:
+    path = config_file_path(config_root)
     if not path.exists():
         return None
 
-    data = tomllib.loads(path.read_text(encoding="utf-8"))
-    section = data.get(CONFIG_SECTION)
-    if not section:
+    data = load_jsonc(path)
+    if not data:
         return None
 
-    source_dir = section.get("source_dir")
-    target_dir = section.get("target_dir")
+    source_dir = data.get("source_dir")
+    target_dir = data.get("target_dir")
     if not source_dir or not target_dir:
         return None
 
@@ -40,17 +37,13 @@ def load_config(config_dir: Path) -> SkillLinkConfig | None:
     )
 
 
-def save_config(config_dir: Path, config: SkillLinkConfig) -> Path:
-    config_dir.mkdir(parents=True, exist_ok=True)
-    path = config_file_path(config_dir)
-    data: dict[str, object] = {}
-    if path.exists():
-        data = tomllib.loads(path.read_text(encoding="utf-8"))
-
-    data[CONFIG_SECTION] = {
-        "source_dir": str(config.source_dir),
-        "target_dir": str(config.target_dir),
-    }
-
-    path.write_text(tomli_w.dumps(data), encoding="utf-8")
-    return path
+def save_config(config_root: Path, config: SkillLinkConfig) -> Path:
+    return write_jsonc(
+        config_file_path(config_root),
+        {
+            "plugin_id": PLUGIN_ID,
+            "config_version": CONFIG_VERSION,
+            "source_dir": str(config.source_dir),
+            "target_dir": str(config.target_dir),
+        },
+    )

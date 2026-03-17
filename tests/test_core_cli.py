@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import importlib
-import types
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
-import typer
 from typer.testing import CliRunner
 
 
@@ -15,95 +15,97 @@ def require_module(name: str):
         pytest.fail(f"could not import {name}: {exc}")
 
 
-class FakeToolkit:
-    name = "demo"
-    help = "Demo toolkit"
-    version = "1.0.0"
-
-    def build_app(self, ctx_factory):
-        app = typer.Typer(help="Demo toolkit")
-
-        @app.command()
-        def ping():
-            ctx = ctx_factory()
-            typer.echo(f"pong:{ctx.marker}")
-
-        return app
-
-
-def test_create_app_mounts_loaded_toolkit_commands():
+def test_help_lists_installed_plugins_only(tmp_path: Path):
     cli = require_module("agent_kit.cli")
-    app = cli.create_app(
-        discover_toolkits=lambda: types.SimpleNamespace(toolkits=[FakeToolkit()], failed=[]),
-        context_factory=lambda: types.SimpleNamespace(marker="ok"),
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skill-link", description="Link local skills")
+        ],
+        broken_plugins=lambda: [
+            SimpleNamespace(plugin_id="broken", status="broken", reason="missing executable")
+        ],
     )
 
-    result = CliRunner().invoke(app, ["demo", "ping"])
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["--help"])
 
     assert result.exit_code == 0
-    assert "pong:ok" in result.output
+    assert "plugins" in result.output
+    assert "skill-link" in result.output
+    assert "broken" in result.output
+    assert "missing executable" in result.output
 
 
-def test_help_reports_failed_toolkits_without_blocking_loaded_ones():
+def test_dynamic_plugin_command_forwards_extra_args():
     cli = require_module("agent_kit.cli")
-    app = cli.create_app(
-        discover_toolkits=lambda: types.SimpleNamespace(
-            toolkits=[FakeToolkit()],
-            failed=[types.SimpleNamespace(name="broken", error="boom")],
+    calls: list[tuple[str, list[str]]] = []
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skill-link", description="Link local skills")
+        ],
+        broken_plugins=lambda: [],
+        run_plugin=lambda plugin_id, args: calls.append((plugin_id, args)) or SimpleNamespace(
+            returncode=0,
+            stdout="ok\n",
+            stderr="",
         ),
-        context_factory=lambda: types.SimpleNamespace(marker="ok"),
     )
-    runner = CliRunner()
 
-    help_result = runner.invoke(app, ["--help"])
-    ping_result = runner.invoke(app, ["demo", "ping"])
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["skill-link", "status", "--verbose"])
 
-    assert help_result.exit_code == 0
-    assert "broken" in help_result.output
-    assert "boom" in help_result.output
-    assert "demo" in help_result.output
-    assert ping_result.exit_code == 0
+    assert result.exit_code == 0
+    assert "ok" in result.output
+    assert calls == [("skill-link", ["status", "--verbose"])]
 
 
-def test_discover_toolkits_collects_load_errors():
-    toolkits = require_module("agent_kit.toolkits")
+def test_plugins_refresh_command_uses_manager():
+    cli = require_module("agent_kit.cli")
+    called = {}
 
-    class FakeEntryPoint:
-        def __init__(self, name, loader):
-            self.name = name
-            self._loader = loader
+    def refresh_registry():
+        called["refresh"] = True
+        return {
+            "skill-link": SimpleNamespace(plugin_id="skill-link", version="0.2.0")
+        }
 
-        def load(self):
-            return self._loader()
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+        refresh_registry=refresh_registry,
+    )
 
-    ok_entry = FakeEntryPoint("demo", lambda: FakeToolkit())
-    broken_entry = FakeEntryPoint("broken", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["plugins", "refresh"])
 
-    result = toolkits.discover_toolkits(lambda: [ok_entry, broken_entry])
-
-    assert [toolkit.name for toolkit in result.toolkits] == ["demo"]
-    assert len(result.failed) == 1
-    assert result.failed[0].name == "broken"
-    assert "boom" in result.failed[0].error
+    assert result.exit_code == 0
+    assert called["refresh"] is True
+    assert "skill-link" in result.output
 
 
-def test_questionary_io_omits_none_default(monkeypatch):
-    context_module = require_module("agent_kit.context")
-    captured = {}
+def test_plugins_info_shows_installed_and_available_versions():
+    cli = require_module("agent_kit.cli")
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+        get_plugin_info=lambda plugin_id: SimpleNamespace(
+            plugin_id=plugin_id,
+            description="Link local skills",
+            source_type="git",
+            available_version="0.2.0",
+            installed_version="0.1.0",
+            tag="v0.2.0",
+            commit="abc123",
+            status="installed",
+            config_path=Path("/tmp/config.jsonc"),
+            venv_path=Path("/tmp/venv"),
+        ),
+    )
 
-    class FakePrompt:
-        def ask(self):
-            return "value"
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["plugins", "info", "skill-link"])
 
-    def fake_text(message, **kwargs):
-        captured["message"] = message
-        captured["kwargs"] = kwargs
-        return FakePrompt()
-
-    monkeypatch.setattr(context_module.questionary, "text", fake_text)
-
-    value = context_module.QuestionaryIO().prompt_text("Source skills directory")
-
-    assert value == "value"
-    assert captured["message"] == "Source skills directory"
-    assert "default" not in captured["kwargs"]
+    assert result.exit_code == 0
+    assert "available_version: 0.2.0" in result.output
+    assert "installed_version: 0.1.0" in result.output
+    assert "config_path: /tmp/config.jsonc" in result.output

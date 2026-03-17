@@ -5,7 +5,7 @@ description = "Extensible CLI for agent toolkits."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "platformdirs>=4.2,<5.0",
+    "packaging>=24.1,<25.0",
     "questionary>=2.0,<3.0",
     "typer>=0.12,<1.0",
 ]
@@ -15,8 +15,12 @@ agent-kit = "agent_kit.cli:main"
 
 [dependency-groups]
 dev = [
+    "agent-kit-skill-link",
     "pytest>=8.3,<9.0",
 ]
+
+[tool.uv.sources]
+agent-kit-skill-link = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/*"]

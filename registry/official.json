@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "plugins": {
+    "skill-link": {
+      "plugin_id": "skill-link",
+      "display_name": "Skill Link",
+      "description": "Link selected local skills into a target directory.",
+      "source_type": "git",
+      "package_name": "agent-kit-skill-link",
+      "git_url": "https://github.com/Mikko-ww/agent-kit.git",
+      "subdirectory": "packages/agent-kit-skill-link",
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "commit": "9e3fa5cacd945ea8f337a8e74b4fd934b32cb147",
+      "api_version": 1,
+      "min_core_version": "0.1.0"
+    }
+  }
+}

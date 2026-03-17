@@ -59,17 +59,28 @@ class FakeIO:
 
 
 def build_app(tmp_path: Path, io: FakeIO):
-    toolkit_module = require_module("agent_kit_skill_link.toolkit")
-    context = SimpleNamespace(
+    plugin_cli = require_module("agent_kit_skill_link.plugin_cli")
+    runtime = SimpleNamespace(
         logger=logging.getLogger("skill-link-test"),
         cwd=tmp_path,
-        config_dir=tmp_path / "config",
+        config_root=tmp_path / "config",
+        data_root=tmp_path / "data",
+        cache_root=tmp_path / "cache",
         io=io,
     )
-    return toolkit_module.get_toolkit().build_app(lambda: context)
+    return plugin_cli.build_app(runtime_factory=lambda: runtime)
 
 
-def test_list_auto_runs_init_when_not_configured(tmp_path: Path):
+def test_plugin_metadata_output():
+    plugin_cli = require_module("agent_kit_skill_link.plugin_cli")
+    result = CliRunner().invoke(plugin_cli.build_app(), ["--plugin-metadata"])
+
+    assert result.exit_code == 0
+    assert '"plugin_id": "skill-link"' in result.output
+    assert '"api_version": 1' in result.output
+
+
+def test_list_auto_runs_init_when_not_configured_and_writes_plugin_local_jsonc(tmp_path: Path):
     source_dir = tmp_path / "skills"
     target_dir = tmp_path / "linked"
     source_dir.mkdir()
@@ -84,7 +95,7 @@ def test_list_auto_runs_init_when_not_configured(tmp_path: Path):
 
     assert result.exit_code == 0
     assert "alpha" in result.output
-    assert (tmp_path / "config" / "config.toml").exists()
+    assert (tmp_path / "config" / "plugins" / "skill-link" / "config.jsonc").exists()
     assert target_dir.exists()
 
 

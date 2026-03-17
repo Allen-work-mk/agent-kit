@@ -30,11 +30,12 @@ def test_save_and_load_config_round_trip(tmp_path: Path):
     config.source_dir.mkdir()
     config.target_dir.mkdir()
 
-    config_module.save_config(tmp_path, config)
-    loaded = config_module.load_config(tmp_path)
+    config_module.save_config(tmp_path / "config", config)
+    loaded = config_module.load_config(tmp_path / "config")
 
     assert loaded == config
-    assert config_module.config_file_path(tmp_path).exists()
+    assert config_module.config_file_path(tmp_path / "config").exists()
+    assert '"config_version": 1' in config_module.config_file_path(tmp_path / "config").read_text(encoding="utf-8")
 
 
 def test_discover_skill_statuses_reports_linked_conflict_broken_and_unlinked(tmp_path: Path):

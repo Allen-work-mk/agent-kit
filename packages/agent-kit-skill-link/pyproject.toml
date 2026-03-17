@@ -5,15 +5,12 @@ description = "Skill linking toolkit for agent-kit."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "agent-kit",
-    "tomli-w>=1.0,<2.0",
+    "questionary>=2.0,<3.0",
+    "typer>=0.12,<1.0",
 ]
 
-[project.entry-points."agent_kit.toolkits"]
-skill-link = "agent_kit_skill_link.toolkit:get_toolkit"
-
-[tool.uv.sources]
-agent-kit = { workspace = true }
+[project.scripts]
+agent-kit-plugin = "agent_kit_skill_link.plugin_cli:main"
 
 [build-system]
 requires = ["hatchling>=1.27,<2.0"]

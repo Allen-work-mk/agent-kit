@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, Sequence
 
 import questionary
 import typer
-from platformdirs import user_config_dir
 
 
 class InteractiveIO(Protocol):
@@ -69,6 +69,6 @@ def default_context_factory() -> AgentKitContext:
     return AgentKitContext(
         logger=logging.getLogger("agent-kit"),
         cwd=Path.cwd(),
-        config_dir=Path(user_config_dir("agent-kit")),
+        config_dir=Path(os.environ.get("AGENT_KIT_CONFIG_DIR", "~/.config/agent-kit")).expanduser(),
         io=QuestionaryIO(),
     )
