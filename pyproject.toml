@@ -23,7 +23,7 @@ dev = [
 skills-link = { workspace = true }
 
 [tool.uv.workspace]
-members = ["packages/*"]
+members = ["packages/skills-link"]
 
 [tool.pytest.ini_options]
 testpaths = [
