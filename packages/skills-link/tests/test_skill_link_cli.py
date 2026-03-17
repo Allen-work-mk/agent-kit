@@ -59,9 +59,9 @@ class FakeIO:
 
 
 def build_app(tmp_path: Path, io: FakeIO):
-    plugin_cli = require_module("agent_kit_skill_link.plugin_cli")
+    plugin_cli = require_module("skills_link.plugin_cli")
     runtime = SimpleNamespace(
-        logger=logging.getLogger("skill-link-test"),
+        logger=logging.getLogger("skills-link-test"),
         cwd=tmp_path,
         config_root=tmp_path / "config",
         data_root=tmp_path / "data",
@@ -72,11 +72,11 @@ def build_app(tmp_path: Path, io: FakeIO):
 
 
 def test_plugin_metadata_output():
-    plugin_cli = require_module("agent_kit_skill_link.plugin_cli")
+    plugin_cli = require_module("skills_link.plugin_cli")
     result = CliRunner().invoke(plugin_cli.build_app(), ["--plugin-metadata"])
 
     assert result.exit_code == 0
-    assert '"plugin_id": "skill-link"' in result.output
+    assert '"plugin_id": "skills-link"' in result.output
     assert '"api_version": 1' in result.output
 
 
@@ -95,12 +95,12 @@ def test_list_auto_runs_init_when_not_configured_and_writes_plugin_local_jsonc(t
 
     assert result.exit_code == 0
     assert "alpha" in result.output
-    assert (tmp_path / "config" / "plugins" / "skill-link" / "config.jsonc").exists()
+    assert (tmp_path / "config" / "plugins" / "skills-link" / "config.jsonc").exists()
     assert target_dir.exists()
 
 
 def test_link_and_unlink_commands_manage_symlinks(tmp_path: Path):
-    config_module = require_module("agent_kit_skill_link.config")
+    config_module = require_module("skills_link.config")
 
     source_dir = tmp_path / "skills"
     target_dir = tmp_path / "linked"

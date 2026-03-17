@@ -10,9 +10,9 @@ from typing import Protocol, Sequence
 import questionary
 import typer
 
-from agent_kit_skill_link import API_VERSION, CONFIG_VERSION, PLUGIN_ID, __version__
-from agent_kit_skill_link.config import SkillLinkConfig, load_config, save_config
-from agent_kit_skill_link.logic import (
+from skills_link import API_VERSION, CONFIG_VERSION, PLUGIN_ID, __version__
+from skills_link.config import SkillLinkConfig, load_config, save_config
+from skills_link.logic import (
     LinkResult,
     SkillStatus,
     UnlinkResult,
@@ -198,7 +198,7 @@ def main() -> None:
 def _require_config(runtime: PluginRuntime) -> SkillLinkConfig:
     config = load_config(runtime.config_root)
     if config is None:
-        runtime.io.warn("skill-link is not configured. Starting init.")
+        runtime.io.warn("skills-link is not configured. Starting init.")
         config = _run_init(runtime)
     return config
 

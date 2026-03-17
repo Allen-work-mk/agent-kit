@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from agent_kit_skill_link import CONFIG_VERSION, PLUGIN_ID
-from agent_kit_skill_link.jsonc import load_jsonc, write_jsonc
+from skills_link import CONFIG_VERSION, PLUGIN_ID
+from skills_link.jsonc import load_jsonc, write_jsonc
 
 
 @dataclass(slots=True, frozen=True)

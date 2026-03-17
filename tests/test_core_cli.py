@@ -19,7 +19,7 @@ def test_help_lists_installed_plugins_only(tmp_path: Path):
     cli = require_module("agent_kit.cli")
     manager = SimpleNamespace(
         runnable_plugins=lambda: [
-            SimpleNamespace(plugin_id="skill-link", description="Link local skills")
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills")
         ],
         broken_plugins=lambda: [
             SimpleNamespace(plugin_id="broken", status="broken", reason="missing executable")
@@ -31,7 +31,7 @@ def test_help_lists_installed_plugins_only(tmp_path: Path):
 
     assert result.exit_code == 0
     assert "plugins" in result.output
-    assert "skill-link" in result.output
+    assert "skills-link" in result.output
     assert "broken" in result.output
     assert "missing executable" in result.output
 
@@ -41,7 +41,7 @@ def test_dynamic_plugin_command_forwards_extra_args():
     calls: list[tuple[str, list[str]]] = []
     manager = SimpleNamespace(
         runnable_plugins=lambda: [
-            SimpleNamespace(plugin_id="skill-link", description="Link local skills")
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills")
         ],
         broken_plugins=lambda: [],
         run_plugin=lambda plugin_id, args: calls.append((plugin_id, args)) or SimpleNamespace(
@@ -52,11 +52,11 @@ def test_dynamic_plugin_command_forwards_extra_args():
     )
 
     app = cli.create_app(manager_factory=lambda: manager)
-    result = CliRunner().invoke(app, ["skill-link", "status", "--verbose"])
+    result = CliRunner().invoke(app, ["skills-link", "status", "--verbose"])
 
     assert result.exit_code == 0
     assert "ok" in result.output
-    assert calls == [("skill-link", ["status", "--verbose"])]
+    assert calls == [("skills-link", ["status", "--verbose"])]
 
 
 def test_plugins_refresh_command_uses_manager():
@@ -66,7 +66,7 @@ def test_plugins_refresh_command_uses_manager():
     def refresh_registry():
         called["refresh"] = True
         return {
-            "skill-link": SimpleNamespace(plugin_id="skill-link", version="0.2.0")
+            "skills-link": SimpleNamespace(plugin_id="skills-link", version="0.2.0")
         }
 
     manager = SimpleNamespace(
@@ -80,7 +80,7 @@ def test_plugins_refresh_command_uses_manager():
 
     assert result.exit_code == 0
     assert called["refresh"] is True
-    assert "skill-link" in result.output
+    assert "skills-link" in result.output
 
 
 def test_plugins_info_shows_installed_and_available_versions():
@@ -103,7 +103,7 @@ def test_plugins_info_shows_installed_and_available_versions():
     )
 
     app = cli.create_app(manager_factory=lambda: manager)
-    result = CliRunner().invoke(app, ["plugins", "info", "skill-link"])
+    result = CliRunner().invoke(app, ["plugins", "info", "skills-link"])
 
     assert result.exit_code == 0
     assert "available_version: 0.2.0" in result.output

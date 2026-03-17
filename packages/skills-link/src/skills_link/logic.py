@@ -5,7 +5,7 @@ from pathlib import Path
 import os
 import sys
 
-from agent_kit_skill_link.config import SkillLinkConfig
+from skills_link.config import SkillLinkConfig
 
 SUPPORTED_PLATFORMS = ("darwin", "linux")
 
@@ -32,7 +32,7 @@ class UnlinkResult:
 
 def ensure_supported_platform() -> None:
     if not sys.platform.startswith(SUPPORTED_PLATFORMS):
-        raise RuntimeError("skill-link is only supported on macOS and Linux")
+        raise RuntimeError("skills-link is only supported on macOS and Linux")
 
 
 def validate_source_dir(source_dir: Path) -> None:

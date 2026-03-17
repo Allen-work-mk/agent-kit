@@ -5,7 +5,7 @@ requires-python = ">=3.11"
 [manifest]
 members = [
     "agent-kit",
-    "agent-kit-skill-link",
+    "skills-link",
 ]
 
 [[package]]
@@ -20,7 +20,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "agent-kit-skill-link" },
+    { name = "skills-link" },
     { name = "pytest" },
 ]
 
@@ -33,14 +33,14 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "agent-kit-skill-link", editable = "packages/agent-kit-skill-link" },
+    { name = "skills-link", editable = "packages/skills-link" },
     { name = "pytest", specifier = ">=8.3,<9.0" },
 ]
 
 [[package]]
-name = "agent-kit-skill-link"
+name = "skills-link"
 version = "0.1.0"
-source = { editable = "packages/agent-kit-skill-link" }
+source = { editable = "packages/skills-link" }
 dependencies = [
     { name = "questionary" },
     { name = "typer" },

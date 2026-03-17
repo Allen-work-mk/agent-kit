@@ -21,7 +21,7 @@ def write_skill(base: Path, name: str) -> Path:
 
 
 def test_save_and_load_config_round_trip(tmp_path: Path):
-    config_module = require_module("agent_kit_skill_link.config")
+    config_module = require_module("skills_link.config")
 
     config = config_module.SkillLinkConfig(
         source_dir=tmp_path / "source",
@@ -39,8 +39,8 @@ def test_save_and_load_config_round_trip(tmp_path: Path):
 
 
 def test_discover_skill_statuses_reports_linked_conflict_broken_and_unlinked(tmp_path: Path):
-    config_module = require_module("agent_kit_skill_link.config")
-    logic_module = require_module("agent_kit_skill_link.logic")
+    config_module = require_module("skills_link.config")
+    logic_module = require_module("skills_link.logic")
 
     source_dir = tmp_path / "skills"
     target_dir = tmp_path / "linked"
@@ -70,8 +70,8 @@ def test_discover_skill_statuses_reports_linked_conflict_broken_and_unlinked(tmp
 
 
 def test_link_skills_creates_links_and_reports_conflicts(tmp_path: Path):
-    config_module = require_module("agent_kit_skill_link.config")
-    logic_module = require_module("agent_kit_skill_link.logic")
+    config_module = require_module("skills_link.config")
+    logic_module = require_module("skills_link.logic")
 
     source_dir = tmp_path / "skills"
     target_dir = tmp_path / "linked"
@@ -92,8 +92,8 @@ def test_link_skills_creates_links_and_reports_conflicts(tmp_path: Path):
 
 
 def test_unlink_skills_only_removes_symlinks_pointing_to_source_dir(tmp_path: Path):
-    config_module = require_module("agent_kit_skill_link.config")
-    logic_module = require_module("agent_kit_skill_link.logic")
+    config_module = require_module("skills_link.config")
+    logic_module = require_module("skills_link.logic")
 
     source_dir = tmp_path / "skills"
     target_dir = tmp_path / "linked"
