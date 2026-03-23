@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  echo "请使用 source scripts/dev-env.sh 载入当前终端环境" >&2
+  echo "请使用 source scripts/dev/dev-env.sh 载入当前终端环境" >&2
   exit 1
 fi
 
@@ -17,7 +17,7 @@ ak() {
       skills-link|opencode-env-switch)
         local plugin_id="$1"
         shift
-        uv run python scripts/run_workspace_plugin.py "$plugin_id" "$@"
+        uv run python scripts/dev/run_workspace_plugin.py "$plugin_id" "$@"
         return $?
         ;;
     esac

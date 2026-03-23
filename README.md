@@ -21,7 +21,7 @@ agent-kit plugins install <plugin-id>
 当前 core 支持三种官方来源：
 
 - `pypi`：从包索引安装指定分发包版本。
-- `git`：从 Git 仓库的固定 `commit` 安装，可带 `subdirectory`。
+- `git`：从 Git 仓库的固定 `tag` 安装，可带 `subdirectory`；旧条目仍兼容 `commit`。
 - `wheel`：从远程 `.whl` 制品安装。
 
 `wheel` 来源的规则：
@@ -33,6 +33,12 @@ agent-kit plugins install <plugin-id>
 - 安装完成后仍会继续校验 `plugin_id`、`installed_version`、`api_version`、分发包名和分发包版本。
 
 当前仓库已经具备 `wheel` 安装能力，但官方内置插件条目暂未切换到 `wheel`。目前内置的 `skills-link` 仍然使用 `git` 来源。
+
+`git` 来源的官方发布约定：
+
+- 官方 registry 优先使用插件级 tag 作为安装锚点，例如 `skills-link-v0.1.0`
+- `commit` 不再是官方发布的必填字段；旧 registry 条目仍可兼容
+- 安装后仍会校验分发包版本、仓库 URL 和插件元数据，但不再强校验 registry 中的 `commit`
 
 ## 目录布局
 
@@ -95,7 +101,7 @@ AGENT_KIT_LANG=en agent-kit skills-link --help
 如果你想在仓库根目录下用隔离目录做本地手工测试，可以先载入开发环境脚本：
 
 ```bash
-source scripts/dev-env.sh
+source scripts/dev/dev-env.sh
 ```
 
 脚本会在当前终端中设置以下环境变量，并自动创建对应目录：
@@ -114,7 +120,7 @@ ak skills-link status
 ak opencode-env-switch status
 ```
 
-其中 `ak` 是 `source scripts/dev-env.sh` 后注入到当前终端的 shell 函数。
+其中 `ak` 是 `source scripts/dev/dev-env.sh` 后注入到当前终端的 shell 函数。
 
 - `ak plugins ...` 仍然等价于 `uv run agent-kit plugins ...`
 - `ak skills-link ...` 会直接调用当前 workspace 中的 `skills-link` 插件
@@ -124,10 +130,29 @@ ak opencode-env-switch status
 uv run agent-kit plugins list
 ```
 
+## 插件发布脚本
+
+仓库内新增单插件发布脚本：
+
+```bash
+uv run python scripts/release/release_plugin.py <plugin-id> patch
+uv run python scripts/release/release_plugin.py <plugin-id> minor
+uv run python scripts/release/release_plugin.py <plugin-id> major
+```
+
+第一版行为固定为：
+
+- 只处理单个官方插件
+- 自动更新插件版本号
+- 自动同步两个官方 registry 副本中的 `version` 与 `tag`
+- 自动创建中文提交和本地插件级 tag
+- 不自动 push，不创建 PR 或 GitHub Release
+
 ## 目录说明
 
 - [src/agent_kit](src/agent_kit)：core 实现
 - [packages](packages)：所有插件目录
+- [scripts](scripts)：开发与发布辅助脚本
 - [registry/official.json](registry/official.json)：仓库内官方注册表
 - [src/agent_kit/official_registry.json](src/agent_kit/official_registry.json)：打包内置注册表副本
 - [tests](tests)：core 测试

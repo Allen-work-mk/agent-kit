@@ -20,7 +20,7 @@ def run_shell(command: str) -> subprocess.CompletedProcess[str]:
 def test_dev_env_script_exposes_workspace_plugin_commands() -> None:
     result = run_shell(
         """
-        source scripts/dev-env.sh >/dev/null
+        source scripts/dev/dev-env.sh >/dev/null
         ak skills-link --plugin-metadata
         ak opencode-env-switch --plugin-metadata
         """

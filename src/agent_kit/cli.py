@@ -50,10 +50,10 @@ def create_app(
         typer.echo(_t(language, "plugin.info.status", value=info.status))
         typer.echo(_t(language, "plugin.info.description", value=info.description))
         typer.echo(_t(language, "plugin.info.source_type", value=info.source_type))
-        typer.echo(_t(language, "plugin.info.available_version", value=info.available_version))
-        typer.echo(_t(language, "plugin.info.installed_version", value=info.installed_version))
-        typer.echo(_t(language, "plugin.info.tag", value=info.tag))
-        typer.echo(_t(language, "plugin.info.commit", value=info.commit))
+        typer.echo(_t(language, "plugin.info.available_version", value=_display(info.available_version)))
+        typer.echo(_t(language, "plugin.info.installed_version", value=_display(info.installed_version)))
+        typer.echo(_t(language, "plugin.info.tag", value=_display(info.tag)))
+        typer.echo(_t(language, "plugin.info.commit", value=_display(info.commit)))
         typer.echo(_t(language, "plugin.info.config_path", value=info.config_path))
         typer.echo(_t(language, "plugin.info.venv_path", value=info.venv_path))
 
@@ -159,3 +159,7 @@ def _plugin_help(language: str, plugin_id: str, fallback: str) -> str:
 
 def _t(language: str, key: str, **kwargs: object) -> str:
     return translate(language, key, **kwargs)
+
+
+def _display(value: object | None) -> object:
+    return value if value is not None else "-"

@@ -57,9 +57,10 @@ class RegistryPlugin:
             return f"{self.package_name}=={self.version}"
 
         if self.source_type == "git":
-            if not self.git_url or not self.commit:
+            ref = self.tag or self.commit
+            if not self.git_url or not ref:
                 raise ValueError(f"missing git source for {self.plugin_id}")
-            spec = f"git+{self.git_url}@{self.commit}"
+            spec = f"git+{self.git_url}@{ref}"
             if self.subdirectory:
                 spec = f"{spec}#subdirectory={self.subdirectory}"
             return spec

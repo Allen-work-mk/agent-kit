@@ -347,8 +347,7 @@ class PluginManager:
         if entry.source_type == "git":
             direct_url = distribution_metadata.get("direct_url") or {}
             url = direct_url.get("url")
-            commit_id = ((direct_url.get("vcs_info") or {}).get("commit_id"))
-            if url != entry.git_url or commit_id != entry.commit:
+            if url != entry.git_url:
                 raise PluginError(f"distribution metadata mismatch for {entry.plugin_id}")
 
     def _write_record(self, record: InstalledPluginRecord) -> None:

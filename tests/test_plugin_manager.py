@@ -145,6 +145,32 @@ def test_registry_plugin_supports_wheel_source():
     assert entry.install_spec() == "https://example.com/releases/skills_link-0.2.0-py3-none-any.whl"
 
 
+def test_registry_plugin_prefers_git_tag_over_commit():
+    registry_module = require_module("agent_kit.registry")
+
+    entry = registry_module.RegistryPlugin.from_dict(
+        {
+            "plugin_id": "skills-link",
+            "display_name": "Skills Link",
+            "description": "git plugin",
+            "source_type": "git",
+            "git_url": "https://example.com/repo.git",
+            "subdirectory": "packages/skills-link",
+            "version": "0.2.0",
+            "tag": "skills-link-v0.2.0",
+            "commit": "abc123",
+            "package_name": "skills-link",
+            "api_version": 1,
+            "min_core_version": "0.1.0",
+        }
+    )
+
+    assert (
+        entry.install_spec()
+        == "git+https://example.com/repo.git@skills-link-v0.2.0#subdirectory=packages/skills-link"
+    )
+
+
 def test_builtin_registry_includes_opencode_env_switch():
     registry_module = require_module("agent_kit.registry")
 
@@ -277,7 +303,63 @@ def test_install_supports_git_source_and_records_latest_version(tmp_path: Path):
     assert record.installed_version == "0.2.0"
     assert record.latest_known_version == "0.2.0"
     assert record.source_type == "git"
-    assert record.source_ref.endswith("@abc123#subdirectory=packages/skills-link")
+    assert record.source_ref.endswith("@v0.2.0#subdirectory=packages/skills-link")
+
+
+def test_install_supports_git_source_without_commit(tmp_path: Path):
+    paths_module = require_module("agent_kit.paths")
+    registry_module = require_module("agent_kit.registry")
+    manager_module = require_module("agent_kit.plugin_manager")
+    layout = make_layout(paths_module, tmp_path)
+    store = registry_module.RegistryStore(
+        layout=layout,
+        builtin_registry_loader=lambda: {
+            "schema_version": 1,
+            "plugins": {
+                "skills-link": {
+                    "plugin_id": "skills-link",
+                    "display_name": "Skills Link",
+                    "description": "plugin",
+                    "source_type": "git",
+                    "git_url": "https://example.com/repo.git",
+                    "subdirectory": "packages/skills-link",
+                    "version": "0.2.0",
+                    "tag": "skills-link-v0.2.0",
+                    "package_name": "skills-link",
+                    "api_version": 1,
+                    "min_core_version": "0.1.0",
+                }
+            },
+        },
+        registry_fetcher=lambda url: "{}",
+    )
+    manager = manager_module.PluginManager(layout=layout, registry_store=store)
+
+    manager.command_runner = lambda *args, **kwargs: None
+    manager.probe_plugin_metadata = lambda plugin_id: {
+        "plugin_id": "skills-link",
+        "installed_version": "0.2.0",
+        "api_version": 1,
+        "config_version": 1,
+    }
+    manager.probe_distribution_metadata = lambda entry: {
+        "package_name": "skills-link",
+        "version": "0.2.0",
+        "direct_url": {
+            "url": "https://example.com/repo.git",
+            "vcs_info": {"vcs": "git", "commit_id": "resolved-commit"},
+        },
+    }
+
+    record = manager.install_plugin("skills-link")
+
+    assert record.installed_version == "0.2.0"
+    assert record.latest_known_version == "0.2.0"
+    assert record.source_type == "git"
+    assert (
+        record.source_ref
+        == "git+https://example.com/repo.git@skills-link-v0.2.0#subdirectory=packages/skills-link"
+    )
 
 
 def test_install_supports_wheel_source_and_records_sha256(tmp_path: Path):

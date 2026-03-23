@@ -44,6 +44,8 @@
   插件自身规则见 [packages/skills-link/AGENTS.md](packages/skills-link/AGENTS.md)
 - [packages/opencode-env-switch](packages/opencode-env-switch)：OpenCode profile 切换插件
   插件自身规则见 [packages/opencode-env-switch/AGENTS.md](packages/opencode-env-switch/AGENTS.md)
+- [scripts](scripts)：开发与发布辅助脚本
+  具体约束见 [scripts/AGENTS.md](scripts/AGENTS.md)
 - [docs](docs)：设计文档与实施计划
 
 ## 5. AGENTS 分层规则

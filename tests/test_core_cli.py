@@ -112,6 +112,33 @@ def test_plugins_info_shows_installed_and_available_versions():
     assert "config_path: /tmp/config.jsonc" in result.output
 
 
+def test_plugins_info_uses_dash_for_missing_optional_git_fields():
+    cli = require_module("agent_kit.cli")
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+        get_plugin_info=lambda plugin_id: SimpleNamespace(
+            plugin_id=plugin_id,
+            description="Link local skills",
+            source_type="git",
+            available_version="0.2.0",
+            installed_version="0.1.0",
+            tag="skills-link-v0.2.0",
+            commit=None,
+            status="installed",
+            config_path=Path("/tmp/config.jsonc"),
+            venv_path=Path("/tmp/venv"),
+        ),
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["plugins", "info", "skills-link"])
+
+    assert result.exit_code == 0
+    assert "tag: skills-link-v0.2.0" in result.output
+    assert "commit: -" in result.output
+
+
 def test_help_uses_zh_cn_when_config_requests_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     cli = require_module("agent_kit.cli")
     config_root = tmp_path / "config"
