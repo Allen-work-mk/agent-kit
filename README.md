@@ -59,6 +59,40 @@ agent-kit plugins info opencode-env-switch
 agent-kit opencode-env-switch status
 ```
 
+## 本地开发环境
+
+如果你想在仓库根目录下用隔离目录做本地手工测试，可以先载入开发环境脚本：
+
+```bash
+source scripts/dev-env.sh
+```
+
+脚本会在当前终端中设置以下环境变量，并自动创建对应目录：
+
+```bash
+AGENT_KIT_CONFIG_DIR="$PWD/.tmp/config"
+AGENT_KIT_DATA_DIR="$PWD/.tmp/data"
+AGENT_KIT_CACHE_DIR="$PWD/.tmp/cache"
+```
+
+载入后，就可以直接执行本地命令，例如：
+
+```bash
+ak plugins list
+ak skills-link status
+ak opencode-env-switch status
+```
+
+其中 `ak` 是 `source scripts/dev-env.sh` 后注入到当前终端的 shell 函数。
+
+- `ak plugins ...` 仍然等价于 `uv run agent-kit plugins ...`
+- `ak skills-link ...` 会直接调用当前 workspace 中的 `skills-link` 插件
+- `ak opencode-env-switch ...` 会直接调用当前 workspace 中的 `opencode-env-switch` 插件
+
+```bash
+uv run agent-kit plugins list
+```
+
 ## 目录说明
 
 - [src/agent_kit](src/agent_kit)：core 实现
