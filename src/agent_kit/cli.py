@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typer
 from typer import Context
+from agent_kit.alias import disable_alias, enable_alias, get_alias_status
 from agent_kit.locale import SUPPORTED_LANGUAGES, load_config_language, resolve_language, save_config_language
 from agent_kit.messages import translate
 from agent_kit.plugin_manager import PluginError, PluginManager
@@ -24,6 +25,7 @@ def create_app(
 
     plugins_app = typer.Typer(help=_t(language, "plugins.help"), no_args_is_help=True, add_completion=False)
     config_app = typer.Typer(help=_t(language, "config.help"), no_args_is_help=True, add_completion=False)
+    alias_app = typer.Typer(help=_t(language, "alias.help"), no_args_is_help=True, add_completion=False)
 
     @plugins_app.command("refresh", help=_t(language, "plugins.refresh.help"))
     def refresh_command() -> None:
@@ -101,8 +103,40 @@ def create_app(
             return
         typer.echo(_t(language, "config.language.saved", value=value))
 
+    @alias_app.command("enable", help=_t(language, "alias.enable.help"))
+    def alias_enable_command() -> None:
+        alias_path = layout.alias_wrapper_path("ak")
+        try:
+            result = enable_alias(alias_path)
+        except ValueError:
+            typer.secho(_t(language, "alias.error.unmanaged", path=alias_path), fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        key = "alias.enable.created" if result.changed else "alias.enable.exists"
+        typer.echo(_t(language, key, alias_name=result.alias_name, path=result.path))
+
+    @alias_app.command("disable", help=_t(language, "alias.disable.help"))
+    def alias_disable_command() -> None:
+        alias_path = layout.alias_wrapper_path("ak")
+        try:
+            result = disable_alias(alias_path)
+        except ValueError:
+            typer.secho(_t(language, "alias.error.unmanaged", path=alias_path), fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        key = "alias.disable.removed" if result.changed else "alias.disable.missing"
+        typer.echo(_t(language, key, alias_name=result.alias_name, path=result.path))
+
+    @alias_app.command("status", help=_t(language, "alias.status.help"))
+    def alias_status_command() -> None:
+        status = get_alias_status(layout.alias_wrapper_path("ak"))
+        typer.echo(_t(language, "alias.status.value", value=status.state))
+        typer.echo(_t(language, "alias.status.path", value=status.path))
+        typer.echo(_t(language, "alias.status.bin_dir", value=status.bin_dir))
+        path_key = "alias.status.path.ready" if status.path_in_path else "alias.status.path.missing"
+        typer.echo(_t(language, path_key, value=status.bin_dir))
+
     app.add_typer(plugins_app, name="plugins")
     app.add_typer(config_app, name="config")
+    app.add_typer(alias_app, name="alias")
 
     for plugin in manager.runnable_plugins():
         app.command(

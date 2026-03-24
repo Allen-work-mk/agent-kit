@@ -60,12 +60,36 @@ agent-kit plugins install <plugin-id>
 agent-kit plugins list
 agent-kit plugins info skills-link
 agent-kit plugins install skills-link
+agent-kit alias enable
+agent-kit alias status
+agent-kit alias disable
 agent-kit config get language
 agent-kit config set language zh-CN
 agent-kit skills-link status
 agent-kit plugins info opencode-env-switch
 agent-kit opencode-env-switch status
 ```
+
+## CLI alias
+
+core 现在支持通过受管 wrapper 显式启用 `agent-kit` 的固定别名 `ak`：
+
+```bash
+agent-kit alias enable
+agent-kit alias status
+agent-kit alias disable
+```
+
+行为约定：
+
+- `agent-kit alias enable` 会创建 `~/.local/bin/ak`
+- `agent-kit alias disable` 只会删除 agent-kit 自己创建的受管 wrapper，不会删除用户自定义脚本
+- `agent-kit alias status` 会显示当前状态、wrapper 路径，以及 `~/.local/bin` 是否已在 `PATH`
+- `ak ...` 的运行效果等价于 `agent-kit ...`
+
+当前只支持固定别名 `ak`，不支持自定义别名名或自定义安装路径。
+
+如果 `agent-kit alias status` 提示 `~/.local/bin` 未在 `PATH` 中，需要先把它加入 shell 的 `PATH`，否则直接输入 `ak` 不会生效。
 
 ## CLI 多语言
 
@@ -120,7 +144,7 @@ ak skills-link status
 ak opencode-env-switch status
 ```
 
-其中 `ak` 是 `source scripts/dev/dev-env.sh` 后注入到当前终端的 shell 函数。
+其中 `ak` 是 `source scripts/dev/dev-env.sh` 后注入到当前终端的 shell 函数，不等同于 `agent-kit alias enable` 创建的 `~/.local/bin/ak` wrapper。
 
 - `ak plugins ...` 仍然等价于 `uv run agent-kit plugins ...`
 - `ak skills-link ...` 会直接调用当前 workspace 中的 `skills-link` 插件

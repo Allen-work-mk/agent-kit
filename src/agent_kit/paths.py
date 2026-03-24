@@ -37,6 +37,13 @@ class AgentKitLayout:
         return self.config_root / "config.jsonc"
 
     @property
+    def user_local_bin_dir(self) -> Path:
+        return _expand_path("~/.local/bin")
+
+    def alias_wrapper_path(self, alias_name: str) -> Path:
+        return self.user_local_bin_dir / alias_name
+
+    @property
     def registry_cache_path(self) -> Path:
         return self.cache_root / "registry.json"
 

@@ -194,3 +194,164 @@ def test_config_set_language_rejects_invalid_values(tmp_path: Path, monkeypatch:
 
     assert result.exit_code == 1
     assert "Supported values: auto, en, zh-CN" in result.output
+
+
+def test_alias_enable_creates_managed_wrapper_and_is_idempotent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    cli = require_module("agent_kit.cli")
+    home = tmp_path / "home"
+    home.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+    app = cli.create_app(manager_factory=lambda: manager)
+    runner = CliRunner()
+
+    first_result = runner.invoke(app, ["alias", "enable"])
+    second_result = runner.invoke(app, ["alias", "enable"])
+
+    alias_path = home / ".local" / "bin" / "ak"
+    assert first_result.exit_code == 0
+    assert second_result.exit_code == 0
+    assert alias_path.exists()
+    assert alias_path.read_text(encoding="utf-8").startswith("#!/usr/bin/env sh\n")
+    assert "agent-kit managed alias" in alias_path.read_text(encoding="utf-8")
+    assert 'exec agent-kit "$@"' in alias_path.read_text(encoding="utf-8")
+    assert alias_path.stat().st_mode & 0o111
+
+
+def test_alias_enable_rejects_existing_unmanaged_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cli = require_module("agent_kit.cli")
+    home = tmp_path / "home"
+    alias_dir = home / ".local" / "bin"
+    alias_dir.mkdir(parents=True)
+    (alias_dir / "ak").write_text("#!/usr/bin/env sh\necho custom\n", encoding="utf-8")
+    monkeypatch.setenv("HOME", str(home))
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["alias", "enable"])
+
+    assert result.exit_code == 1
+    assert "not managed by agent-kit" in result.output
+
+
+def test_alias_disable_removes_managed_wrapper(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cli = require_module("agent_kit.cli")
+    home = tmp_path / "home"
+    home.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+    app = cli.create_app(manager_factory=lambda: manager)
+    runner = CliRunner()
+
+    enable_result = runner.invoke(app, ["alias", "enable"])
+    disable_result = runner.invoke(app, ["alias", "disable"])
+
+    assert enable_result.exit_code == 0
+    assert disable_result.exit_code == 0
+    assert not (home / ".local" / "bin" / "ak").exists()
+
+
+def test_alias_disable_rejects_existing_unmanaged_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cli = require_module("agent_kit.cli")
+    home = tmp_path / "home"
+    alias_dir = home / ".local" / "bin"
+    alias_dir.mkdir(parents=True)
+    (alias_dir / "ak").write_text("#!/usr/bin/env sh\necho custom\n", encoding="utf-8")
+    monkeypatch.setenv("HOME", str(home))
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["alias", "disable"])
+
+    assert result.exit_code == 1
+    assert "not managed by agent-kit" in result.output
+
+
+def test_alias_status_reports_enabled_state_and_path_warning(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cli = require_module("agent_kit.cli")
+    home = tmp_path / "home"
+    home.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+    app = cli.create_app(manager_factory=lambda: manager)
+    runner = CliRunner()
+
+    enable_result = runner.invoke(app, ["alias", "enable"])
+    status_result = runner.invoke(app, ["alias", "status"])
+
+    assert enable_result.exit_code == 0
+    assert status_result.exit_code == 0
+    assert "status: enabled" in status_result.output
+    assert str(home / ".local" / "bin" / "ak") in status_result.output
+    assert "not in PATH" in status_result.output
+
+
+def test_alias_status_reports_disabled_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cli = require_module("agent_kit.cli")
+    home = tmp_path / "home"
+    home.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["alias", "status"])
+
+    assert result.exit_code == 0
+    assert "status: disabled" in result.output
+
+
+def test_help_lists_alias_namespace():
+    cli = require_module("agent_kit.cli")
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["--help"])
+
+    assert result.exit_code == 0
+    assert "alias" in result.output
+
+
+def test_alias_help_uses_zh_cn_when_config_requests_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cli = require_module("agent_kit.cli")
+    config_root = tmp_path / "config"
+    config_root.mkdir(parents=True)
+    (config_root / "config.jsonc").write_text(
+        json.dumps({"language": "zh-CN"}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AGENT_KIT_CONFIG_DIR", str(config_root))
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["alias", "--help"])
+
+    assert result.exit_code == 0
+    assert "管理 agent-kit CLI 别名。" in result.output
