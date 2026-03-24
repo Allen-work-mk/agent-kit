@@ -135,6 +135,14 @@ uv run agent-kit plugins list
 仓库内新增单插件发布脚本：
 
 ```bash
+./scripts/release/ak-release.sh skills-link patch
+./scripts/release/ak-release.sh skills-link minor
+./scripts/release/ak-release.sh skills-link major
+```
+
+底层实现仍然保留为：
+
+```bash
 uv run python scripts/release/release_plugin.py <plugin-id> patch
 uv run python scripts/release/release_plugin.py <plugin-id> minor
 uv run python scripts/release/release_plugin.py <plugin-id> major
@@ -142,7 +150,9 @@ uv run python scripts/release/release_plugin.py <plugin-id> major
 
 第一版行为固定为：
 
+- 优先推荐使用 `./scripts/release/ak-release.sh`
 - 只处理单个官方插件
+- 参数缺失或错误时，会直接输出用法、可用插件和可用版本类型提示
 - 自动更新插件版本号
 - 自动同步两个官方 registry 副本中的 `version` 与 `tag`
 - 自动创建中文提交和本地插件级 tag
