@@ -208,6 +208,34 @@ uv run python scripts/release/release_plugin.py <plugin-id> major
 - 自动创建中文提交和本地插件级 tag
 - 不自动 push，不创建 PR 或 GitHub Release
 
+## Core 发布脚本
+
+仓库内提供 core 专用升版脚本：
+
+```bash
+./scripts/release/ak-core-release.sh patch
+./scripts/release/ak-core-release.sh minor
+./scripts/release/ak-core-release.sh major
+```
+
+底层实现仍然保留为：
+
+```bash
+uv run python scripts/release/release_core.py patch
+uv run python scripts/release/release_core.py minor
+uv run python scripts/release/release_core.py major
+```
+
+第一版行为固定为：
+
+- 优先推荐使用 `./scripts/release/ak-core-release.sh`
+- 只处理 core `agent-kit` 自身版本
+- 参数缺失或错误时，会直接输出用法和可用版本类型提示
+- 自动更新根 `pyproject.toml` 与 `src/agent_kit/__init__.py` 中的版本号
+- 自动执行 `uv lock`，并在有变化时把 `uv.lock` 纳入同一次发布提交
+- 自动创建中文提交和本地 core tag，tag 格式为 `agent-kit-v<version>`
+- 不自动 push，不创建 PR 或 GitHub Release
+
 ## 目录说明
 
 - [src/agent_kit](src/agent_kit)：core 实现

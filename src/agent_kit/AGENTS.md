@@ -45,6 +45,7 @@ core 不负责：
 - [locale.py](locale.py)：全局语言决议与 `language` 配置读写
 - [messages.py](messages.py)：core CLI 多语言文案
 - [alias.py](alias.py)：受管 alias wrapper 的状态判断与文件操作
+- [release_core.py](release_core.py)：core 版本升级、提交与 tag 编排
 
 ## 4. 目录与状态模型
 
@@ -74,6 +75,7 @@ core 不负责：
   - `installed_version`
   - `api_version`
   - 分发包版本与来源
+- 改 core 发布脚本时，确认只更新根 `pyproject.toml` 和 `src/agent_kit/__init__.py`，不会误改任何插件目录或 registry。
 - 改 `wheel` 安装逻辑时，确认会先下载到缓存目录，再校验 `sha256`，最后才执行安装。
 - 改运行逻辑时，确认 `config_version` 不兼容会阻止执行。
 
@@ -81,5 +83,6 @@ core 不负责：
 
 - [../../tests/test_core_cli.py](../../tests/test_core_cli.py)
 - [../../tests/test_plugin_manager.py](../../tests/test_plugin_manager.py)
+- [../../tests/test_release_core.py](../../tests/test_release_core.py)
 
-改 core 行为时，优先先补这两组测试，再改实现。
+改 core 行为时，优先先补相关测试，再改实现。
