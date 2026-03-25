@@ -60,6 +60,104 @@ def test_dynamic_plugin_command_forwards_extra_args():
     assert calls == [("skills-link", ["status", "--verbose"])]
 
 
+def test_plugin_alias_forwards_skills_link_extra_args():
+    cli = require_module("agent_kit.cli")
+    calls: list[tuple[str, list[str]]] = []
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills"),
+            SimpleNamespace(plugin_id="opencode-env-switch", description="Switch OpenCode env"),
+        ],
+        broken_plugins=lambda: [],
+        run_plugin=lambda plugin_id, args: calls.append((plugin_id, args)) or SimpleNamespace(
+            returncode=0,
+            stdout="ok\n",
+            stderr="",
+        ),
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["sl", "status", "--verbose"])
+
+    assert result.exit_code == 0
+    assert calls == [("skills-link", ["status", "--verbose"])]
+
+
+def test_plugin_alias_forwards_opencode_env_switch_extra_args():
+    cli = require_module("agent_kit.cli")
+    calls: list[tuple[str, list[str]]] = []
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills"),
+            SimpleNamespace(plugin_id="opencode-env-switch", description="Switch OpenCode env"),
+        ],
+        broken_plugins=lambda: [],
+        run_plugin=lambda plugin_id, args: calls.append((plugin_id, args)) or SimpleNamespace(
+            returncode=0,
+            stdout="ok\n",
+            stderr="",
+        ),
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["oes", "status"])
+
+    assert result.exit_code == 0
+    assert calls == [("opencode-env-switch", ["status"])]
+
+
+def test_root_help_shows_plugin_alias_hints_but_hides_alias_commands():
+    cli = require_module("agent_kit.cli")
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills"),
+            SimpleNamespace(plugin_id="opencode-env-switch", description="Switch OpenCode env"),
+        ],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["--help"])
+
+    assert result.exit_code == 0
+    assert "skills-link" in result.output
+    assert "alias: sl" in result.output
+    assert "opencode-env-switch" in result.output
+    assert "(alias:" in result.output
+    assert "oes)" in result.output
+    assert "\n│ sl " not in result.output
+    assert "\n│ oes " not in result.output
+
+
+def test_plugin_alias_is_not_registered_for_unavailable_plugin():
+    cli = require_module("agent_kit.cli")
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills")
+        ],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["oes", "status"])
+
+    assert result.exit_code == 2
+
+
+def test_create_app_rejects_plugin_alias_conflict_with_plugin_id():
+    cli = require_module("agent_kit.cli")
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills"),
+            SimpleNamespace(plugin_id="sl", description="Conflicting plugin"),
+        ],
+        broken_plugins=lambda: [],
+    )
+
+    with pytest.raises(ValueError, match="plugin alias conflict"):
+        cli.create_app(manager_factory=lambda: manager)
+
+
 def test_plugins_refresh_command_uses_manager():
     cli = require_module("agent_kit.cli")
     called = {}
@@ -159,6 +257,32 @@ def test_help_uses_zh_cn_when_config_requests_it(tmp_path: Path, monkeypatch: py
     assert result.exit_code == 0
     assert "官方插件管理与执行 CLI。" in result.output
     assert "管理官方插件。" in result.output
+
+
+def test_root_help_uses_zh_cn_plugin_alias_hint_when_config_requests_it(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    cli = require_module("agent_kit.cli")
+    config_root = tmp_path / "config"
+    config_root.mkdir(parents=True)
+    (config_root / "config.jsonc").write_text(
+        json.dumps({"language": "zh-CN"}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AGENT_KIT_CONFIG_DIR", str(config_root))
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills")
+        ],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["--help"])
+
+    assert result.exit_code == 0
+    assert "运行 skills-link 插件命令。（别名：sl）" in result.output
 
 
 def test_config_set_and_get_language(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

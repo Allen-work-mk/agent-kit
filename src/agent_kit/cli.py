@@ -8,6 +8,12 @@ from agent_kit.messages import translate
 from agent_kit.plugin_manager import PluginError, PluginManager
 from agent_kit.paths import AgentKitLayout
 
+PLUGIN_COMMAND_ALIASES = {
+    "skills-link": "sl",
+    "opencode-env-switch": "oes",
+}
+RESERVED_COMMAND_NAMES = frozenset({"plugins", "config", "alias"})
+
 
 def create_app(
     *,
@@ -16,6 +22,8 @@ def create_app(
     layout = AgentKitLayout.from_environment()
     language = resolve_language(config_path=layout.global_config_path).code
     manager = manager_factory()
+    runnable_plugins = manager.runnable_plugins()
+    plugin_aliases = _build_plugin_alias_map(runnable_plugins)
     app = typer.Typer(
         help=_t(language, "app.help"),
         no_args_is_help=True,
@@ -138,12 +146,20 @@ def create_app(
     app.add_typer(config_app, name="config")
     app.add_typer(alias_app, name="alias")
 
-    for plugin in manager.runnable_plugins():
+    for plugin in runnable_plugins:
+        plugin_alias = plugin_aliases.get(plugin.plugin_id)
         app.command(
             plugin.plugin_id,
-            help=_plugin_help(language, plugin.plugin_id, plugin.description),
+            help=_plugin_help(language, plugin.plugin_id, plugin.description, alias=plugin_alias),
             context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
         )(_build_plugin_command(manager, plugin.plugin_id))
+        if plugin_alias is not None:
+            app.command(
+                plugin_alias,
+                help=f"Alias for {plugin.plugin_id}",
+                hidden=True,
+                context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+            )(_build_plugin_command(manager, plugin.plugin_id))
 
     return app
 
@@ -181,14 +197,39 @@ def _build_epilog(manager: PluginManager, language: str) -> str | None:
     return "\n".join(lines)
 
 
-def _plugin_help(language: str, plugin_id: str, fallback: str) -> str:
+def _plugin_help(language: str, plugin_id: str, fallback: str, *, alias: str | None = None) -> str:
     key = f"plugins.dynamic.{plugin_id}"
     translated = _t(language, key, plugin_id=plugin_id)
     if translated == key:
         if language == "en":
-            return fallback
-        return _t(language, "plugins.dynamic.fallback", plugin_id=plugin_id)
-    return translated
+            help_text = fallback
+        else:
+            help_text = _t(language, "plugins.dynamic.fallback", plugin_id=plugin_id)
+    else:
+        help_text = translated
+    if alias is None:
+        return help_text
+    return help_text + _t(language, "plugins.dynamic.alias_suffix", alias=alias)
+
+
+def _build_plugin_alias_map(plugins: list[object]) -> dict[str, str]:
+    plugin_ids = [str(plugin.plugin_id) for plugin in plugins]
+    alias_owners: dict[str, str] = {}
+    aliases: dict[str, str] = {}
+    for plugin_id in plugin_ids:
+        alias = PLUGIN_COMMAND_ALIASES.get(plugin_id)
+        if alias is None:
+            continue
+        if alias in RESERVED_COMMAND_NAMES:
+            raise ValueError(f"plugin alias conflict: {plugin_id} alias {alias} conflicts with core command")
+        if alias in plugin_ids:
+            raise ValueError(f"plugin alias conflict: {plugin_id} alias {alias} conflicts with plugin_id {alias}")
+        owner = alias_owners.get(alias)
+        if owner is not None:
+            raise ValueError(f"plugin alias conflict: {plugin_id} alias {alias} already used by {owner}")
+        alias_owners[alias] = plugin_id
+        aliases[plugin_id] = alias
+    return aliases
 
 
 def _t(language: str, key: str, **kwargs: object) -> str:

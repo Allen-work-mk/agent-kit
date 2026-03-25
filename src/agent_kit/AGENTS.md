@@ -11,6 +11,7 @@
 - 任何会影响插件安装、运行或校验逻辑的改动，都要同步检查 CLI 输出、`plugin.json` 结构和测试。
 - core 负责解析 CLI 最终语言、维护全局 `config.jsonc.language`，并在启动插件进程时透传最终语言。
 - core 负责管理 `agent-kit alias ...` 受管 alias wrapper 的创建、删除和状态输出。
+- core 负责维护官方插件命令短名 alias，并把 alias 路由到对应 `plugin_id`。
 
 ## 2. Core 职责边界
 
@@ -19,6 +20,7 @@ core 负责：
 - 提供根命令 `agent-kit`
 - 暴露 `agent-kit plugins <action>` 管理命令
 - 暴露 `agent-kit alias <action>` alias 管理命令
+- 暴露 `agent-kit <plugin-alias> ...` 到官方插件的短名转发
 - 读取并合并内置注册表与本地缓存注册表
 - 安装、更新、卸载官方插件
 - 支持 `pypi | git | wheel` 三种官方插件来源
@@ -64,6 +66,7 @@ core 不负责：
 
 - 改 CLI 时，确认 `agent-kit --help`、`agent-kit plugins ...` 和动态插件命令行为一致。
 - 改 alias 行为时，确认 `agent-kit alias enable|disable|status`、`agent-kit --help`、PATH 提示和非受管文件保护行为一致。
+- 改插件 alias 行为时，确认 canonical 命令、alias 命令、root help 中的 alias 提示，以及冲突保护都一致。
 - 改语言或帮助输出时，确认 `agent-kit config get/set language`、`agent-kit --help`、`agent-kit plugins --help` 和插件透传语言行为一致。
 - 改注册表时，确认本地内置注册表和仓库副本同步。
 - 改安装逻辑时，确认安装后会校验：

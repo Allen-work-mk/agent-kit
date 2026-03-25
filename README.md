@@ -66,8 +66,10 @@ agent-kit alias disable
 agent-kit config get language
 agent-kit config set language zh-CN
 agent-kit skills-link status
+agent-kit sl status
 agent-kit plugins info opencode-env-switch
 agent-kit opencode-env-switch status
+agent-kit oes status
 ```
 
 ## CLI alias
@@ -90,6 +92,29 @@ agent-kit alias disable
 当前只支持固定别名 `ak`，不支持自定义别名名或自定义安装路径。
 
 如果 `agent-kit alias status` 提示 `~/.local/bin` 未在 `PATH` 中，需要先把它加入 shell 的 `PATH`，否则直接输入 `ak` 不会生效。
+
+## Plugin alias
+
+core 还支持为官方插件提供固定短名：
+
+- `skills-link -> sl`
+- `opencode-env-switch -> oes`
+
+例如：
+
+```bash
+agent-kit sl status
+agent-kit oes status
+ak sl status
+ak oes status
+```
+
+行为约定：
+
+- 插件短名由 core 内置维护，当前不支持用户自定义
+- `agent-kit sl ...` 等价于 `agent-kit skills-link ...`
+- `agent-kit oes ...` 等价于 `agent-kit opencode-env-switch ...`
+- root help 会在 canonical 插件命令旁标注 alias，但 alias 本身不作为独立 help 项显示
 
 ## CLI 多语言
 
