@@ -233,7 +233,7 @@ uv run python scripts/release/release_core.py major
 - 参数缺失或错误时，会直接输出用法和可用版本类型提示
 - 自动更新根 `pyproject.toml` 与 `src/agent_kit/__init__.py` 中的版本号
 - 自动执行 `uv lock`，并在有变化时把 `uv.lock` 纳入同一次发布提交
-- 自动创建中文提交和本地 core tag，tag 格式为 `agent-kit-v<version>`
+- 自动创建中文提交和本地 core tag，tag 格式为 `v<version>`
 - 不自动 push，不创建 PR 或 GitHub Release
 
 ## 目录说明

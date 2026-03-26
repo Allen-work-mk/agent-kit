@@ -92,12 +92,12 @@ def test_release_core_patch_updates_versions_and_git_tag(tmp_path: Path):
     result = releaser.release("patch")
 
     assert result.version == "0.1.1"
-    assert result.tag == "agent-kit-v0.1.1"
+    assert result.tag == "v0.1.1"
     assert result.commit_message == "发布 agent-kit v0.1.1"
     assert 'version = "0.1.1"' in (repo_root / "pyproject.toml").read_text(encoding="utf-8")
     assert '__version__ = "0.1.1"' in (repo_root / "src" / "agent_kit" / "__init__.py").read_text(encoding="utf-8")
     assert ["git", "commit", "-m", "发布 agent-kit v0.1.1"] in commands
-    assert ["git", "tag", "agent-kit-v0.1.1"] in commands
+    assert ["git", "tag", "v0.1.1"] in commands
     assert ["git", "add", "pyproject.toml", "src/agent_kit/__init__.py", "uv.lock"] in commands
     assert command_calls == [["uv", "lock"]]
 
@@ -117,7 +117,7 @@ def test_release_core_supports_minor_and_major_bumps(tmp_path: Path, bump: str, 
     result = releaser.release(bump)
 
     assert result.version == expected
-    assert result.tag == f"agent-kit-v{expected}"
+    assert result.tag == f"v{expected}"
 
 
 def test_release_core_rejects_dirty_worktree(tmp_path: Path):

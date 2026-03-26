@@ -45,7 +45,7 @@ class CoreReleaseTool:
 
         current_version = self._read_project_version(pyproject_path)
         new_version = self._bump_version(current_version, version_bump)
-        tag_name = f"agent-kit-v{new_version}"
+        tag_name = f"v{new_version}"
         commit_message = f"发布 agent-kit v{new_version}"
 
         self._ensure_tag_missing(tag_name)
