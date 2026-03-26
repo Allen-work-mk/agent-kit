@@ -13,6 +13,11 @@
 - CLI 语言决议顺序固定为：`AGENT_KIT_LANG` 环境变量 > `~/.config/agent-kit/config.jsonc` 中的全局 `language` 配置 > 系统语言环境变量 > 英文默认值。
 - 当 core 通过 `agent-kit <plugin-id> ...` 启动插件时，插件必须遵从 core 透传的最终语言，不得自行偏离。
 - 子目录中的 `AGENTS.md` 默认继承本文件规则；子级只补充和细化，不覆盖本文件中的全局规则。
+- 当 agent 的改动涉及 `packages/<plugin>/` 下任意第一方插件时，不能只停在功能提交；功能提交完成后，必须继续补做插件发布流程。
+- 上述插件发布补流程必须使用项目内 skill `./.agents/skills/plugin-release-followup/`，不得由 agent 自行省略、替换或只执行其中一部分。
+- 当 agent 的改动涉及任意非 `packages/<plugin>/` 的仓库文件时，不能只停在功能提交；功能提交完成后，必须继续补做一次 core 版本升级流程。
+- 上述非插件改动的 core 升版补流程必须使用项目内 skill `./.agents/skills/core-release-followup/`，不得由 agent 自行省略、替换或只执行其中一部分。
+- 非插件改动的 core 升版补动作固定通过 `./scripts/release/ak-core-release.sh` 完成，不得手工模拟或绕过该入口。
 
 ## 2. 变更一致性要求
 

@@ -60,12 +60,65 @@ agent-kit plugins install <plugin-id>
 agent-kit plugins list
 agent-kit plugins info skills-link
 agent-kit plugins install skills-link
+agent-kit alias enable
+agent-kit alias status
+agent-kit alias disable
+agent-kit config list
 agent-kit config get language
 agent-kit config set language zh-CN
 agent-kit skills-link status
+agent-kit sl status
 agent-kit plugins info opencode-env-switch
 agent-kit opencode-env-switch status
+agent-kit oes status
 ```
+
+## CLI alias
+
+core 现在支持通过受管 wrapper 显式启用 `agent-kit` 的固定别名 `ak`：
+
+```bash
+agent-kit alias enable
+agent-kit alias status
+agent-kit alias disable
+```
+
+行为约定：
+
+- `agent-kit alias enable` 会创建 `~/.local/bin/ak`
+- `agent-kit alias disable` 只会删除 agent-kit 自己创建的受管 wrapper，不会删除用户自定义脚本
+- `agent-kit alias status` 会显示当前状态、wrapper 路径，以及 `~/.local/bin` 是否已在 `PATH`
+- `ak ...` 的运行效果等价于 `agent-kit ...`
+
+当前只支持固定别名 `ak`，不支持自定义别名名或自定义安装路径。
+
+如果 `agent-kit alias status` 提示 `~/.local/bin` 未在 `PATH` 中，需要先把它加入 shell 的 `PATH`，否则直接输入 `ak` 不会生效。
+
+## Plugin alias
+
+core 还支持为官方插件提供固定短名：
+
+- `skills-link -> sl`
+- `opencode-env-switch -> oes`
+
+例如：
+
+```bash
+agent-kit skills-link --help
+agent-kit sl status
+agent-kit sl --help
+agent-kit oes status
+ak sl status
+ak oes status
+```
+
+行为约定：
+
+- 插件短名由 core 内置维护，当前不支持用户自定义
+- `agent-kit sl ...` 等价于 `agent-kit skills-link ...`
+- `agent-kit oes ...` 等价于 `agent-kit opencode-env-switch ...`
+- `agent-kit <plugin-id> --help` 和对应短名 `--help` 都会直接显示插件自己的帮助信息
+- root help 会在 canonical 插件命令旁标注 alias，但 alias 本身不作为独立 help 项显示
 
 ## CLI 多语言
 
@@ -81,11 +134,18 @@ agent-kit opencode-env-switch status
 可用命令：
 
 ```bash
+agent-kit config list
 agent-kit config get language
 agent-kit config set language auto
 agent-kit config set language en
 agent-kit config set language zh-CN
 ```
+
+当前支持的全局配置项：
+
+- `language`：可选值为 `auto`、`en`、`zh-CN`
+
+当执行 `agent-kit config set language auto` 时，core 会删除 `config.jsonc` 里的 `language` 字段，但会保留全局配置文件本身；如果文件中没有其他配置项，则会保留一个空的 JSONC 模板，方便后续继续编辑。
 
 单次运行也可以直接覆盖：
 
@@ -120,7 +180,7 @@ ak skills-link status
 ak opencode-env-switch status
 ```
 
-其中 `ak` 是 `source scripts/dev/dev-env.sh` 后注入到当前终端的 shell 函数。
+其中 `ak` 是 `source scripts/dev/dev-env.sh` 后注入到当前终端的 shell 函数，不等同于 `agent-kit alias enable` 创建的 `~/.local/bin/ak` wrapper。
 
 - `ak plugins ...` 仍然等价于 `uv run agent-kit plugins ...`
 - `ak skills-link ...` 会直接调用当前 workspace 中的 `skills-link` 插件
@@ -157,6 +217,34 @@ uv run python scripts/release/release_plugin.py <plugin-id> major
 - 自动执行 `uv lock`，并在有变化时把 `uv.lock` 纳入同一次发布提交
 - 自动同步两个官方 registry 副本中的 `version` 与 `tag`
 - 自动创建中文提交和本地插件级 tag
+- 不自动 push，不创建 PR 或 GitHub Release
+
+## Core 发布脚本
+
+仓库内提供 core 专用升版脚本：
+
+```bash
+./scripts/release/ak-core-release.sh patch
+./scripts/release/ak-core-release.sh minor
+./scripts/release/ak-core-release.sh major
+```
+
+底层实现仍然保留为：
+
+```bash
+uv run python scripts/release/release_core.py patch
+uv run python scripts/release/release_core.py minor
+uv run python scripts/release/release_core.py major
+```
+
+第一版行为固定为：
+
+- 优先推荐使用 `./scripts/release/ak-core-release.sh`
+- 只处理 core `agent-kit` 自身版本
+- 参数缺失或错误时，会直接输出用法和可用版本类型提示
+- 自动更新根 `pyproject.toml` 与 `src/agent_kit/__init__.py` 中的版本号
+- 自动执行 `uv lock`，并在有变化时把 `uv.lock` 纳入同一次发布提交
+- 自动创建中文提交和本地 core tag，tag 格式为 `v<version>`
 - 不自动 push，不创建 PR 或 GitHub Release
 
 ## 目录说明

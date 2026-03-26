@@ -2,10 +2,22 @@ from __future__ import annotations
 
 import typer
 from typer import Context
+from agent_kit.alias import disable_alias, enable_alias, get_alias_status
 from agent_kit.locale import SUPPORTED_LANGUAGES, load_config_language, resolve_language, save_config_language
 from agent_kit.messages import translate
 from agent_kit.plugin_manager import PluginError, PluginManager
 from agent_kit.paths import AgentKitLayout
+
+PLUGIN_COMMAND_ALIASES = {
+    "skills-link": "sl",
+    "opencode-env-switch": "oes",
+}
+RESERVED_COMMAND_NAMES = frozenset({"plugins", "config", "alias"})
+GLOBAL_CONFIG_KEYS = {
+    "language": {
+        "values": ", ".join(SUPPORTED_LANGUAGES),
+    },
+}
 
 
 def create_app(
@@ -15,6 +27,8 @@ def create_app(
     layout = AgentKitLayout.from_environment()
     language = resolve_language(config_path=layout.global_config_path).code
     manager = manager_factory()
+    runnable_plugins = manager.runnable_plugins()
+    plugin_aliases = _build_plugin_alias_map(runnable_plugins)
     app = typer.Typer(
         help=_t(language, "app.help"),
         no_args_is_help=True,
@@ -24,6 +38,7 @@ def create_app(
 
     plugins_app = typer.Typer(help=_t(language, "plugins.help"), no_args_is_help=True, add_completion=False)
     config_app = typer.Typer(help=_t(language, "config.help"), no_args_is_help=True, add_completion=False)
+    alias_app = typer.Typer(help=_t(language, "alias.help"), no_args_is_help=True, add_completion=False)
 
     @plugins_app.command("refresh", help=_t(language, "plugins.refresh.help"))
     def refresh_command() -> None:
@@ -84,6 +99,11 @@ def create_app(
             raise typer.Exit(code=1)
         typer.echo(_t(language, "config.language.value", value=load_config_language(layout.global_config_path) or "auto"))
 
+    @config_app.command("list", help=_t(language, "config.list.help"))
+    def config_list_command() -> None:
+        for key, meta in GLOBAL_CONFIG_KEYS.items():
+            typer.echo(_t(language, "config.list.item", name=key, values=meta["values"]))
+
     @config_app.command("set", help=_t(language, "config.set.help"))
     def config_set_command(
         key: str = typer.Argument(..., help=_t(language, "config.key.help")),
@@ -101,27 +121,70 @@ def create_app(
             return
         typer.echo(_t(language, "config.language.saved", value=value))
 
+    @alias_app.command("enable", help=_t(language, "alias.enable.help"))
+    def alias_enable_command() -> None:
+        alias_path = layout.alias_wrapper_path("ak")
+        try:
+            result = enable_alias(alias_path)
+        except ValueError:
+            typer.secho(_t(language, "alias.error.unmanaged", path=alias_path), fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        key = "alias.enable.created" if result.changed else "alias.enable.exists"
+        typer.echo(_t(language, key, alias_name=result.alias_name, path=result.path))
+
+    @alias_app.command("disable", help=_t(language, "alias.disable.help"))
+    def alias_disable_command() -> None:
+        alias_path = layout.alias_wrapper_path("ak")
+        try:
+            result = disable_alias(alias_path)
+        except ValueError:
+            typer.secho(_t(language, "alias.error.unmanaged", path=alias_path), fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        key = "alias.disable.removed" if result.changed else "alias.disable.missing"
+        typer.echo(_t(language, key, alias_name=result.alias_name, path=result.path))
+
+    @alias_app.command("status", help=_t(language, "alias.status.help"))
+    def alias_status_command() -> None:
+        status = get_alias_status(layout.alias_wrapper_path("ak"))
+        typer.echo(_t(language, "alias.status.value", value=status.state))
+        typer.echo(_t(language, "alias.status.path", value=status.path))
+        typer.echo(_t(language, "alias.status.bin_dir", value=status.bin_dir))
+        path_key = "alias.status.path.ready" if status.path_in_path else "alias.status.path.missing"
+        typer.echo(_t(language, path_key, value=status.bin_dir))
+
     app.add_typer(plugins_app, name="plugins")
     app.add_typer(config_app, name="config")
+    app.add_typer(alias_app, name="alias")
 
-    for plugin in manager.runnable_plugins():
+    for plugin in runnable_plugins:
+        plugin_alias = plugin_aliases.get(plugin.plugin_id)
         app.command(
             plugin.plugin_id,
-            help=_plugin_help(language, plugin.plugin_id, plugin.description),
+            help=_plugin_help(language, plugin.plugin_id, plugin.description, alias=plugin_alias),
             context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+            add_help_option=False,
         )(_build_plugin_command(manager, plugin.plugin_id))
+        if plugin_alias is not None:
+            app.command(
+                plugin_alias,
+                help=f"Alias for {plugin.plugin_id}",
+                hidden=True,
+                context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+                add_help_option=False,
+            )(_build_plugin_command(manager, plugin.plugin_id))
 
     return app
 
 
-def main() -> None:
+def main() -> int:
     try:
         create_app()()
     except PluginError as exc:
         layout = AgentKitLayout.from_environment()
         language = resolve_language(config_path=layout.global_config_path).code
         typer.secho(_t(language, "plugin.error", message=str(exc)), fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1) from exc
+        return 1
+    return 0
 
 
 def _build_plugin_command(manager: PluginManager, plugin_id: str):
@@ -147,14 +210,39 @@ def _build_epilog(manager: PluginManager, language: str) -> str | None:
     return "\n".join(lines)
 
 
-def _plugin_help(language: str, plugin_id: str, fallback: str) -> str:
+def _plugin_help(language: str, plugin_id: str, fallback: str, *, alias: str | None = None) -> str:
     key = f"plugins.dynamic.{plugin_id}"
     translated = _t(language, key, plugin_id=plugin_id)
     if translated == key:
         if language == "en":
-            return fallback
-        return _t(language, "plugins.dynamic.fallback", plugin_id=plugin_id)
-    return translated
+            help_text = fallback
+        else:
+            help_text = _t(language, "plugins.dynamic.fallback", plugin_id=plugin_id)
+    else:
+        help_text = translated
+    if alias is None:
+        return help_text
+    return help_text + _t(language, "plugins.dynamic.alias_suffix", alias=alias)
+
+
+def _build_plugin_alias_map(plugins: list[object]) -> dict[str, str]:
+    plugin_ids = [str(plugin.plugin_id) for plugin in plugins]
+    alias_owners: dict[str, str] = {}
+    aliases: dict[str, str] = {}
+    for plugin_id in plugin_ids:
+        alias = PLUGIN_COMMAND_ALIASES.get(plugin_id)
+        if alias is None:
+            continue
+        if alias in RESERVED_COMMAND_NAMES:
+            raise ValueError(f"plugin alias conflict: {plugin_id} alias {alias} conflicts with core command")
+        if alias in plugin_ids:
+            raise ValueError(f"plugin alias conflict: {plugin_id} alias {alias} conflicts with plugin_id {alias}")
+        owner = alias_owners.get(alias)
+        if owner is not None:
+            raise ValueError(f"plugin alias conflict: {plugin_id} alias {alias} already used by {owner}")
+        alias_owners[alias] = plugin_id
+        aliases[plugin_id] = alias
+    return aliases
 
 
 def _t(language: str, key: str, **kwargs: object) -> str:

@@ -19,6 +19,10 @@
 - `agent-kit opencode-env-switch export`
 - `agent-kit opencode-env-switch status`
 
+core 侧当前还提供固定短名 alias：
+
+- `agent-kit oes ...` 等价于 `agent-kit opencode-env-switch ...`
+
 对应实现入口：
 
 - [src/opencode_env_switch/plugin_cli.py](src/opencode_env_switch/plugin_cli.py)

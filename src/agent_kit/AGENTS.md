@@ -10,6 +10,8 @@
   - [official_registry.json](official_registry.json)
 - 任何会影响插件安装、运行或校验逻辑的改动，都要同步检查 CLI 输出、`plugin.json` 结构和测试。
 - core 负责解析 CLI 最终语言、维护全局 `config.jsonc.language`，并在启动插件进程时透传最终语言。
+- core 负责管理 `agent-kit alias ...` 受管 alias wrapper 的创建、删除和状态输出。
+- core 负责维护官方插件命令短名 alias，并把 alias 路由到对应 `plugin_id`。
 
 ## 2. Core 职责边界
 
@@ -17,6 +19,8 @@ core 负责：
 
 - 提供根命令 `agent-kit`
 - 暴露 `agent-kit plugins <action>` 管理命令
+- 暴露 `agent-kit alias <action>` alias 管理命令
+- 暴露 `agent-kit <plugin-alias> ...` 到官方插件的短名转发
 - 读取并合并内置注册表与本地缓存注册表
 - 安装、更新、卸载官方插件
 - 支持 `pypi | git | wheel` 三种官方插件来源
@@ -40,6 +44,8 @@ core 不负责：
 - [context.py](context.py)：基础交互上下文
 - [locale.py](locale.py)：全局语言决议与 `language` 配置读写
 - [messages.py](messages.py)：core CLI 多语言文案
+- [alias.py](alias.py)：受管 alias wrapper 的状态判断与文件操作
+- [release_core.py](release_core.py)：core 版本升级、提交与 tag 编排
 
 ## 4. 目录与状态模型
 
@@ -60,6 +66,8 @@ core 不负责：
 ## 5. 修改 Core 时的关注点
 
 - 改 CLI 时，确认 `agent-kit --help`、`agent-kit plugins ...` 和动态插件命令行为一致。
+- 改 alias 行为时，确认 `agent-kit alias enable|disable|status`、`agent-kit --help`、PATH 提示和非受管文件保护行为一致。
+- 改插件 alias 行为时，确认 canonical 命令、alias 命令、root help 中的 alias 提示，以及冲突保护都一致。
 - 改语言或帮助输出时，确认 `agent-kit config get/set language`、`agent-kit --help`、`agent-kit plugins --help` 和插件透传语言行为一致。
 - 改注册表时，确认本地内置注册表和仓库副本同步。
 - 改安装逻辑时，确认安装后会校验：
@@ -67,6 +75,7 @@ core 不负责：
   - `installed_version`
   - `api_version`
   - 分发包版本与来源
+- 改 core 发布脚本时，确认只更新根 `pyproject.toml` 和 `src/agent_kit/__init__.py`，不会误改任何插件目录或 registry。
 - 改 `wheel` 安装逻辑时，确认会先下载到缓存目录，再校验 `sha256`，最后才执行安装。
 - 改运行逻辑时，确认 `config_version` 不兼容会阻止执行。
 
@@ -74,5 +83,6 @@ core 不负责：
 
 - [../../tests/test_core_cli.py](../../tests/test_core_cli.py)
 - [../../tests/test_plugin_manager.py](../../tests/test_plugin_manager.py)
+- [../../tests/test_release_core.py](../../tests/test_release_core.py)
 
-改 core 行为时，优先先补这两组测试，再改实现。
+改 core 行为时，优先先补相关测试，再改实现。

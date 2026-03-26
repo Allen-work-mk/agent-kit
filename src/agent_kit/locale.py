@@ -4,10 +4,11 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from agent_kit.jsonc import load_jsonc, write_jsonc
+from agent_kit.jsonc import load_jsonc, write_jsonc, write_jsonc_template
 
 SUPPORTED_LANGUAGES = ("auto", "en", "zh-CN")
 RESOLVED_LANGUAGES = ("en", "zh-CN")
+GLOBAL_CONFIG_EMPTY_TEMPLATE = "{\n  // Add global CLI settings here.\n}\n"
 
 
 @dataclass(slots=True, frozen=True)
@@ -98,9 +99,7 @@ def save_config_language(config_path: Path, language: str) -> Path | None:
         existing["language"] = language
 
     if not existing:
-        if config_path.exists():
-            config_path.unlink()
-        return None
+        return write_jsonc_template(config_path, GLOBAL_CONFIG_EMPTY_TEMPLATE)
 
     return write_jsonc(config_path, existing)
 

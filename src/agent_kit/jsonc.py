@@ -23,6 +23,12 @@ def write_jsonc(path: Path, data: Any) -> Path:
     return path
 
 
+def write_jsonc_template(path: Path, content: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    return path
+
+
 def _strip_json_comments(content: str) -> str:
     result: list[str] = []
     in_string = False

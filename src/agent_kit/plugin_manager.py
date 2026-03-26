@@ -90,11 +90,15 @@ class PluginManager:
         layout: AgentKitLayout,
         registry_store: RegistryStore,
         command_runner: Callable[..., subprocess.CompletedProcess[str] | None] | None = None,
+        runtime_command_runner: Callable[..., subprocess.CompletedProcess[str] | None] | None = None,
         now_factory: Callable[[], datetime] | None = None,
     ) -> None:
         self.layout = layout
         self.registry_store = registry_store
         self.command_runner = command_runner or self._run_command
+        self.runtime_command_runner = runtime_command_runner or (
+            command_runner if command_runner is not None else self._run_process
+        )
         self.now_factory = now_factory or (lambda: datetime.now(timezone.utc))
         self.download_artifact = self._download_artifact
         self.hash_artifact = self._hash_artifact
@@ -184,10 +188,9 @@ class PluginManager:
         if not executable.exists():
             raise PluginError(f"plugin executable is missing: {executable}")
 
-        return self.command_runner(
+        return self.runtime_command_runner(
             [str(executable), *args],
             env=self._plugin_environment(plugin_id),
-            capture_output=True,
             text=True,
         )
 
@@ -421,6 +424,9 @@ class PluginManager:
         result = subprocess.run(*args, **kwargs, check=False)
         self._ensure_command_success(result)
         return result
+
+    def _run_process(self, *args, **kwargs) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(*args, **kwargs, check=False)
 
     def _ensure_command_success(self, result: subprocess.CompletedProcess[str] | None) -> None:
         if result is None:

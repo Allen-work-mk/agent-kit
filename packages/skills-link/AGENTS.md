@@ -20,6 +20,10 @@
 - `agent-kit skills-link target update`
 - `agent-kit skills-link target remove`
 
+core 侧当前还提供固定短名 alias：
+
+- `agent-kit sl ...` 等价于 `agent-kit skills-link ...`
+
 对应实现入口：
 
 - [src/skills_link/plugin_cli.py](src/skills_link/plugin_cli.py)
