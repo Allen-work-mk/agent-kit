@@ -18,6 +18,7 @@
 - `agent-kit opencode-env-switch switch`
 - `agent-kit opencode-env-switch export`
 - `agent-kit opencode-env-switch status`
+- `agent-kit opencode-env-switch wizard`
 
 core 侧当前还提供固定短名 alias：
 
