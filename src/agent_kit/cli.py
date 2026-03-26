@@ -162,6 +162,7 @@ def create_app(
             plugin.plugin_id,
             help=_plugin_help(language, plugin.plugin_id, plugin.description, alias=plugin_alias),
             context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+            add_help_option=False,
         )(_build_plugin_command(manager, plugin.plugin_id))
         if plugin_alias is not None:
             app.command(
@@ -169,6 +170,7 @@ def create_app(
                 help=f"Alias for {plugin.plugin_id}",
                 hidden=True,
                 context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+                add_help_option=False,
             )(_build_plugin_command(manager, plugin.plugin_id))
 
     return app

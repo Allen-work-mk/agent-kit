@@ -60,6 +60,30 @@ def test_dynamic_plugin_command_forwards_extra_args():
     assert calls == [("skills-link", ["status", "--verbose"])]
 
 
+def test_dynamic_plugin_command_forwards_help_flag():
+    cli = require_module("agent_kit.cli")
+    calls: list[tuple[str, list[str]]] = []
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills")
+        ],
+        broken_plugins=lambda: [],
+        run_plugin=lambda plugin_id, args: calls.append((plugin_id, args)) or SimpleNamespace(
+            returncode=0,
+            stdout="Usage: agent-kit-plugin [OPTIONS] COMMAND [ARGS]...\n\nCommands:\n  status\n",
+            stderr="",
+        ),
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["skills-link", "--help"])
+
+    assert result.exit_code == 0
+    assert "Commands:" in result.output
+    assert "status" in result.output
+    assert calls == [("skills-link", ["--help"])]
+
+
 def test_plugin_alias_forwards_skills_link_extra_args():
     cli = require_module("agent_kit.cli")
     calls: list[tuple[str, list[str]]] = []
@@ -81,6 +105,31 @@ def test_plugin_alias_forwards_skills_link_extra_args():
 
     assert result.exit_code == 0
     assert calls == [("skills-link", ["status", "--verbose"])]
+
+
+def test_plugin_alias_forwards_help_flag():
+    cli = require_module("agent_kit.cli")
+    calls: list[tuple[str, list[str]]] = []
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills"),
+            SimpleNamespace(plugin_id="opencode-env-switch", description="Switch OpenCode env"),
+        ],
+        broken_plugins=lambda: [],
+        run_plugin=lambda plugin_id, args: calls.append((plugin_id, args)) or SimpleNamespace(
+            returncode=0,
+            stdout="Usage: agent-kit-plugin [OPTIONS] COMMAND [ARGS]...\n\nCommands:\n  status\n",
+            stderr="",
+        ),
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["sl", "--help"])
+
+    assert result.exit_code == 0
+    assert "Commands:" in result.output
+    assert "status" in result.output
+    assert calls == [("skills-link", ["--help"])]
 
 
 def test_plugin_alias_forwards_opencode_env_switch_extra_args():

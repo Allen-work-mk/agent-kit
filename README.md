@@ -104,7 +104,9 @@ core 还支持为官方插件提供固定短名：
 例如：
 
 ```bash
+agent-kit skills-link --help
 agent-kit sl status
+agent-kit sl --help
 agent-kit oes status
 ak sl status
 ak oes status
@@ -115,6 +117,7 @@ ak oes status
 - 插件短名由 core 内置维护，当前不支持用户自定义
 - `agent-kit sl ...` 等价于 `agent-kit skills-link ...`
 - `agent-kit oes ...` 等价于 `agent-kit opencode-env-switch ...`
+- `agent-kit <plugin-id> --help` 和对应短名 `--help` 都会直接显示插件自己的帮助信息
 - root help 会在 canonical 插件命令旁标注 alias，但 alias 本身不作为独立 help 项显示
 
 ## CLI 多语言
