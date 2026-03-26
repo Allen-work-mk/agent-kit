@@ -320,6 +320,42 @@ def test_config_set_language_rejects_invalid_values(tmp_path: Path, monkeypatch:
     assert "Supported values: auto, en, zh-CN" in result.output
 
 
+def test_config_list_shows_supported_global_keys(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cli = require_module("agent_kit.cli")
+    monkeypatch.setenv("AGENT_KIT_CONFIG_DIR", str(tmp_path / "config"))
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["config", "list"])
+
+    assert result.exit_code == 0
+    assert "language" in result.output
+    assert "auto, en, zh-CN" in result.output
+
+
+def test_config_set_language_auto_keeps_empty_template_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cli = require_module("agent_kit.cli")
+    config_root = tmp_path / "config"
+    monkeypatch.setenv("AGENT_KIT_CONFIG_DIR", str(config_root))
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [],
+        broken_plugins=lambda: [],
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    runner = CliRunner()
+
+    set_result = runner.invoke(app, ["config", "set", "language", "en"])
+    reset_result = runner.invoke(app, ["config", "set", "language", "auto"])
+
+    assert set_result.exit_code == 0
+    assert reset_result.exit_code == 0
+    assert (config_root / "config.jsonc").read_text(encoding="utf-8") == "{\n  // Add global CLI settings here.\n}\n"
+
+
 def test_alias_enable_creates_managed_wrapper_and_is_idempotent(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

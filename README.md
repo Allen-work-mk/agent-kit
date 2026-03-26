@@ -63,6 +63,7 @@ agent-kit plugins install skills-link
 agent-kit alias enable
 agent-kit alias status
 agent-kit alias disable
+agent-kit config list
 agent-kit config get language
 agent-kit config set language zh-CN
 agent-kit skills-link status
@@ -130,11 +131,18 @@ ak oes status
 可用命令：
 
 ```bash
+agent-kit config list
 agent-kit config get language
 agent-kit config set language auto
 agent-kit config set language en
 agent-kit config set language zh-CN
 ```
+
+当前支持的全局配置项：
+
+- `language`：可选值为 `auto`、`en`、`zh-CN`
+
+当执行 `agent-kit config set language auto` 时，core 会删除 `config.jsonc` 里的 `language` 字段，但会保留全局配置文件本身；如果文件中没有其他配置项，则会保留一个空的 JSONC 模板，方便后续继续编辑。
 
 单次运行也可以直接覆盖：
 

@@ -13,6 +13,11 @@ PLUGIN_COMMAND_ALIASES = {
     "opencode-env-switch": "oes",
 }
 RESERVED_COMMAND_NAMES = frozenset({"plugins", "config", "alias"})
+GLOBAL_CONFIG_KEYS = {
+    "language": {
+        "values": ", ".join(SUPPORTED_LANGUAGES),
+    },
+}
 
 
 def create_app(
@@ -93,6 +98,11 @@ def create_app(
             typer.secho(_t(language, "config.key.unsupported", key=key), fg=typer.colors.RED, err=True)
             raise typer.Exit(code=1)
         typer.echo(_t(language, "config.language.value", value=load_config_language(layout.global_config_path) or "auto"))
+
+    @config_app.command("list", help=_t(language, "config.list.help"))
+    def config_list_command() -> None:
+        for key, meta in GLOBAL_CONFIG_KEYS.items():
+            typer.echo(_t(language, "config.list.item", name=key, values=meta["values"]))
 
     @config_app.command("set", help=_t(language, "config.set.help"))
     def config_set_command(

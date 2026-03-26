@@ -70,3 +70,14 @@ def test_resolve_language_falls_back_to_english_for_unsupported_locale(tmp_path:
 
     assert resolved.code == "en"
     assert resolved.source == "default"
+
+
+def test_save_config_language_auto_keeps_empty_template_file(tmp_path: Path):
+    locale_module = require_module("agent_kit.locale")
+    config_path = tmp_path / "config.jsonc"
+    write_global_config(config_path, language="en")
+
+    locale_module.save_config_language(config_path, "auto")
+
+    assert config_path.exists()
+    assert config_path.read_text(encoding="utf-8") == "{\n  // Add global CLI settings here.\n}\n"
