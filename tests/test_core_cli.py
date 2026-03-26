@@ -155,6 +155,30 @@ def test_plugin_alias_forwards_opencode_env_switch_extra_args():
     assert calls == [("opencode-env-switch", ["status"])]
 
 
+def test_plugin_alias_preserves_plugin_usage_output_on_nonzero_exit():
+    cli = require_module("agent_kit.cli")
+    manager = SimpleNamespace(
+        runnable_plugins=lambda: [
+            SimpleNamespace(plugin_id="skills-link", description="Link local skills"),
+            SimpleNamespace(plugin_id="opencode-env-switch", description="Switch OpenCode env"),
+        ],
+        broken_plugins=lambda: [],
+        run_plugin=lambda plugin_id, args: SimpleNamespace(
+            returncode=2,
+            stdout="Usage: agent-kit-plugin init [OPTIONS] COMMAND [ARGS]...\n\nCommands:\n  zsh\n",
+            stderr="",
+        ),
+    )
+
+    app = cli.create_app(manager_factory=lambda: manager)
+    result = CliRunner().invoke(app, ["oes", "init"])
+
+    assert result.exit_code == 2
+    assert "Usage: agent-kit-plugin init" in result.output
+    assert "zsh" in result.output
+    assert "unknown command failure" not in result.output
+
+
 def test_root_help_shows_plugin_alias_hints_but_hides_alias_commands():
     cli = require_module("agent_kit.cli")
     manager = SimpleNamespace(
@@ -306,6 +330,26 @@ def test_help_uses_zh_cn_when_config_requests_it(tmp_path: Path, monkeypatch: py
     assert result.exit_code == 0
     assert "官方插件管理与执行 CLI。" in result.output
     assert "管理官方插件。" in result.output
+
+
+def test_main_returns_one_when_plugin_error_occurs(monkeypatch: pytest.MonkeyPatch):
+    cli = require_module("agent_kit.cli")
+    messages: list[str] = []
+
+    def fake_app():
+        def runner():
+            raise require_module("agent_kit.plugin_manager").PluginError("boom")
+
+        return runner
+
+    monkeypatch.setattr(cli, "create_app", fake_app)
+    monkeypatch.setattr(cli.typer, "secho", lambda message, **kwargs: messages.append(message))
+
+    result = cli.main()
+
+    assert result == 1
+    assert messages
+    assert "boom" in messages[0]
 
 
 def test_root_help_uses_zh_cn_plugin_alias_hint_when_config_requests_it(

@@ -176,14 +176,15 @@ def create_app(
     return app
 
 
-def main() -> None:
+def main() -> int:
     try:
         create_app()()
     except PluginError as exc:
         layout = AgentKitLayout.from_environment()
         language = resolve_language(config_path=layout.global_config_path).code
         typer.secho(_t(language, "plugin.error", message=str(exc)), fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1) from exc
+        return 1
+    return 0
 
 
 def _build_plugin_command(manager: PluginManager, plugin_id: str):
