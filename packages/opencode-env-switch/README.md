@@ -56,7 +56,19 @@ agent-kit opencode-env-switch profile remove --name work
 agent-kit opencode-env-switch switch --name work
 agent-kit opencode-env-switch export --name work --shell zsh
 agent-kit opencode-env-switch status
+agent-kit opencode-env-switch wizard
 ```
+
+### wizard 命令
+
+`wizard` 命令提供交互式设置向导，引导用户完成初始配置：
+
+1. 欢迎界面
+2. 询问是否初始化 zsh 集成
+3. 询问是否创建第一个 profile
+4. 引导输入 profile 名称、描述
+5. 引导配置 opencode_config、tui_config、config_dir 路径
+6. 确认并保存配置
 
 ## CLI 语言
 

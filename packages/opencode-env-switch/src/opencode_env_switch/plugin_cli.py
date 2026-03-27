@@ -114,8 +114,10 @@ def build_app(runtime_factory=default_runtime_factory) -> typer.Typer:
     )
     init_app = typer.Typer(help=_t(language, "init.help"), no_args_is_help=True)
     profile_app = typer.Typer(help=_t(language, "profile.help"), no_args_is_help=True)
+    wizard_app = typer.Typer(help=_t(language, "wizard.help"), no_args_is_help=True)
     app.add_typer(init_app, name="init")
     app.add_typer(profile_app, name="profile")
+    app.add_typer(wizard_app, name="wizard")
 
     @app.callback(invoke_without_command=True)
     def app_callback(
@@ -329,6 +331,107 @@ def build_app(runtime_factory=default_runtime_factory) -> typer.Typer:
             for key, status in statuses.items():
                 runtime.io.echo(_tr(runtime, "label.path_item", field=key, value=status.path or "-"))
                 runtime.io.echo(_tr(runtime, "label.path_validity", field=key, value=_format_optional_validity(status.valid, runtime)))
+
+    @wizard_app.command("default", help=_t(language, "wizard.help"))
+    def wizard_command() -> None:
+        runtime = runtime_factory()
+        runtime.io.echo(_tr(runtime, "wizard.welcome"))
+        runtime.io.echo(_tr(runtime, "wizard.welcome_detail"))
+        runtime.io.echo("")
+
+        do_init_zsh = runtime.io.confirm(
+            _tr(runtime, "wizard.prompt_init_zsh"),
+            default=True,
+        )
+
+        do_create_profile = runtime.io.confirm(
+            _tr(runtime, "wizard.prompt_create_profile"),
+            default=True,
+        )
+
+        if not do_init_zsh and not do_create_profile:
+            runtime.io.echo(_tr(runtime, "wizard.skip_all"))
+            return
+
+        config = default_config(runtime.config_root, zsh_rc_file=runtime.default_zsh_rc_file)
+
+        if do_init_zsh:
+            write_shell_source_file(config.shells.zsh.source_file, render_zsh_env(None))
+            install_or_update_zsh_integration(config.shells.zsh.rc_file, config.shells.zsh.source_file)
+            config = set_zsh_installed(config, True)
+            runtime.io.echo(_tr(runtime, "result.installed_zsh", path=config.shells.zsh.rc_file))
+
+        profile_name = None
+        profile_description = None
+        profile_opencode_config = None
+        profile_tui_config = None
+        profile_config_dir = None
+
+        if do_create_profile:
+            while True:
+                name = runtime.io.prompt_text(_tr(runtime, "wizard.prompt_profile_name")).strip()
+                if name:
+                    profile_name = name
+                    break
+                runtime.io.error(_tr(runtime, "error.profile_name_required"))
+
+            description = runtime.io.prompt_text(
+                _tr(runtime, "wizard.prompt_profile_description"),
+                default="",
+            ).strip()
+            profile_description = description or None
+
+            opencode_config_path = runtime.io.prompt_text(
+                _tr(runtime, "wizard.prompt_opencode_config"),
+                default="",
+            ).strip()
+            if opencode_config_path:
+                profile_opencode_config = _resolve_optional_file_path(opencode_config_path, key="opencode_config")
+
+            tui_config_path = runtime.io.prompt_text(
+                _tr(runtime, "wizard.prompt_tui_config"),
+                default="",
+            ).strip()
+            if tui_config_path:
+                profile_tui_config = _resolve_optional_file_path(tui_config_path, key="tui_config")
+
+            config_dir_path = runtime.io.prompt_text(
+                _tr(runtime, "wizard.prompt_config_dir"),
+                default="",
+            ).strip()
+            if config_dir_path:
+                profile_config_dir = _resolve_optional_dir_path(config_dir_path)
+
+            runtime.io.echo("")
+            runtime.io.echo(_tr(runtime, "wizard.confirm_summary"))
+            runtime.io.echo(_tr(runtime, "wizard.confirm_profile_name", name=profile_name))
+            runtime.io.echo(_tr(runtime, "wizard.confirm_profile_description", description=profile_description or "-"))
+            runtime.io.echo(_tr(runtime, "wizard.confirm_opencode_config", path=str(profile_opencode_config) if profile_opencode_config else "-"))
+            runtime.io.echo(_tr(runtime, "wizard.confirm_tui_config", path=str(profile_tui_config) if profile_tui_config else "-"))
+            runtime.io.echo(_tr(runtime, "wizard.confirm_config_dir", path=str(profile_config_dir) if profile_config_dir else "-"))
+
+            if not runtime.io.confirm(_tr(runtime, "wizard.confirm_save"), default=True):
+                runtime.io.echo(_tr(runtime, "wizard.skip_all"))
+                return
+
+            profile = ProfileConfig(
+                name=profile_name,
+                description=profile_description,
+                opencode_config=profile_opencode_config,
+                tui_config=profile_tui_config,
+                config_dir=profile_config_dir,
+            )
+            config = add_profile(config, profile)
+            config = activate_profile(config, profile_name)
+
+        saved_path = save_config(runtime.config_root, config)
+        runtime.io.echo(_tr(runtime, "saved.config", path=saved_path))
+
+        if profile_name:
+            runtime.io.echo(_tr(runtime, "wizard.completed"))
+            runtime.io.echo(_tr(runtime, "wizard.completed_detail", name=profile_name))
+        else:
+            runtime.io.echo(_tr(runtime, "wizard.completed"))
 
     return app
 
